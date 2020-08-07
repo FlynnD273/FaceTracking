@@ -115,14 +115,15 @@ namespace OpenCVTest
                     g.DrawEllipse(p, point.X, point.Y, 10, 10);
                 }
 
-                ImageBetweenPoints(g, eyeImage, landmarks[2], landmarks[3]);
-                ImageBetweenPoints(g, eyeImage, landmarks[4], landmarks[5]);
-                ImageBetweenPoints(g, RotateImage(mustacheImage, (float)Angle(landmarks[6], landmarks[7])), landmarks[0], landmarks[1], 0, (landmarks[7].Y - landmarks[6].Y) / 2);
+                //ImageBetweenPoints(g, eyeImage, landmarks[2], landmarks[3]);
+                //ImageBetweenPoints(g, eyeImage, landmarks[4], landmarks[5]);
+                int d = (int)Dist(landmarks[7], landmarks[6]) * 2;
+                ImageBetweenPoints(g, RotateImage(new Bitmap(mustacheImage, new Size(d, d)), (float)Angle(landmarks[6], landmarks[7])), landmarks[0], landmarks[1], 0, (landmarks[7].Y - landmarks[6].Y) / 2);
             }
 
 
             Size winSize = e.Graphics.VisibleClipBounds.Size.ToSize();
-            Size s = img.Size;
+            Size s = screen.Size;
             Size imgSize;
             double ratio = (double)s.Width / s.Height;
             if ((double)winSize.Width / s.Width < (double)winSize.Height / s.Height)
@@ -134,7 +135,7 @@ namespace OpenCVTest
                 imgSize = new Size((int)(winSize.Height * ratio), winSize.Height);
             }
 
-            e.Graphics.DrawImage(screen, new Drawing.Point(0, 0));
+            e.Graphics.DrawImage(screen, new Drawing.Rectangle(new Drawing.Point(0, 0), imgSize));
         }
 
         private double Angle(Drawing.Point start, Drawing.Point end)
@@ -163,8 +164,8 @@ namespace OpenCVTest
 
         private void ImageBetweenPoints(Graphics g, Bitmap bmp, Drawing.Point left, Drawing.Point right, int xOff = 0, int yOff = 0)
         {
-            int d = (int)Dist(left, right);
-            g.DrawImage(bmp, new Drawing.Rectangle(left.X + xOff, (left.Y + right.Y) / 2 - (right.X - left.X) / 2 + yOff, d, d));
+            //int d = (int)Dist(left, right);
+            g.DrawImage(bmp, new Drawing.Point(left.X + xOff, (left.Y + right.Y) / 2 - (right.X - left.X) / 2 + yOff));
         }
 
         private double Dist (Drawing.Point a, Drawing.Point b)
