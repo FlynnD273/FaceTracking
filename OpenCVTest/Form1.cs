@@ -112,13 +112,15 @@ namespace OpenCVTest
                 p = new Pen(Brushes.Red, 3);
                 foreach (Drawing.Point point in landmarks)
                 {
-                    g.DrawEllipse(p, point.X, point.Y, 10, 10);
+                    //g.DrawEllipse(p, point.X, point.Y, 10, 10);
                 }
 
                 //ImageBetweenPoints(g, eyeImage, landmarks[2], landmarks[3]);
                 //ImageBetweenPoints(g, eyeImage, landmarks[4], landmarks[5]);
-                int d = (int)Dist(landmarks[7], landmarks[6]) * 2;
-                ImageBetweenPoints(g, RotateImage(new Bitmap(mustacheImage, new Size(d, d)), (float)Angle(landmarks[6], landmarks[7])), landmarks[0], landmarks[1], 0, (landmarks[7].Y - landmarks[6].Y) / 2);
+                int d = (int)Dist(landmarks[7], landmarks[6]) * 4;
+                Bitmap bmp = RotateImage(new Bitmap(mustacheImage, new Size(d * 2, d)), (float)Angle(landmarks[6], landmarks[7]));
+                g.DrawImage(bmp, new Drawing.Point((landmarks[0].X + landmarks[1].X) / 2 - bmp.Width / 2, (landmarks[6].Y + landmarks[7].Y) / 2 - bmp.Height / 2));
+                //ImageBetweenPoints(g, , (float)Angle(landmarks[6], landmarks[7])), landmarks[0], landmarks[1], 0, (landmarks[7].Y - landmarks[6].Y) / 2);
             }
 
 
@@ -146,18 +148,19 @@ namespace OpenCVTest
         private Bitmap RotateImage(Bitmap b, float angle)
         {
             //create a new empty bitmap to hold rotated image
-            Bitmap returnBitmap = new Bitmap(b.Width, b.Height);
+            double scale = Dist(new Drawing.Point(0, 0), new Drawing.Point(b.Width, b.Height));
+            Bitmap returnBitmap = new Bitmap((int)(scale), (int)(scale));
             //make a graphics object from the empty bitmap
             using (Graphics g = Graphics.FromImage(returnBitmap))
             {
                 //move rotation point to center of image
-                g.TranslateTransform((float)b.Width / 2, (float)b.Height / 2);
+                g.TranslateTransform((float)returnBitmap.Width / 2, (float)returnBitmap.Height / 2);
                 //rotate
                 g.RotateTransform(angle);
                 //move image back
-                g.TranslateTransform(-(float)b.Width / 2, -(float)b.Height / 2);
+                g.TranslateTransform(-(float)returnBitmap.Width / 2, -(float)returnBitmap.Height / 2);
                 //draw passed in image onto graphics object
-                g.DrawImage(b, new Drawing.Point(0, 0));
+                g.DrawImage(b, new Drawing.Point((returnBitmap.Width - b.Width) / 2, (returnBitmap.Height - b.Height) / 2));
             }
             return returnBitmap;
         }
@@ -165,7 +168,7 @@ namespace OpenCVTest
         private void ImageBetweenPoints(Graphics g, Bitmap bmp, Drawing.Point left, Drawing.Point right, int xOff = 0, int yOff = 0)
         {
             //int d = (int)Dist(left, right);
-            g.DrawImage(bmp, new Drawing.Point(left.X + xOff, (left.Y + right.Y) / 2 - (right.X - left.X) / 2 + yOff));
+            g.DrawImage(bmp, new Drawing.Point((left.X + right.X) / 2 - bmp.Width / 2 + xOff, (left.Y + right.Y) / 2 - bmp.Height / 2 + yOff));
         }
 
         private double Dist (Drawing.Point a, Drawing.Point b)
