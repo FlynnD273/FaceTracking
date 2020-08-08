@@ -1,9 +1,4 @@
 ﻿using DlibDotNet;
-using Emgu.CV;
-using Emgu.CV.Face;
-using Emgu.CV.Structure;
-using Emgu.CV.UI;
-using Emgu.CV.Util;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -16,6 +11,10 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Drawing;
+using OpenCvSharp;
+using OpenCvSharp.Extensions;
+using OpenCvSharp.XImgProc;
+using DlibDotNet.ImageDatasetMetadata;
 
 namespace OpenCVTest
 {
@@ -29,7 +28,6 @@ namespace OpenCVTest
         private ShapePredictor predictor;
         private DlibDotNet.Rectangle[] faces;
         private List<FullObjectDetection> shapes;
-        private Array2D<BgrPixel> image;
         private VideoCapture capture;
         public Form1()
         {
@@ -38,8 +36,7 @@ namespace OpenCVTest
 
             shapes = new List<FullObjectDetection>();
 
-            Image<Bgr, byte> image = new Image<Bgr, byte>("Resources\\Image.jpg");
-            img = image.Mat;
+            img = new Mat();
             eyeImage = new Bitmap(Properties.Resources.Star);
             mustacheImage = new Bitmap(Properties.Resources.Mustache);
 
@@ -47,27 +44,19 @@ namespace OpenCVTest
             predictor = ShapePredictor.Deserialize("Resources\\shape_predictor_68_face_landmarks.dat");
 
             capture = new VideoCapture();
+            capture.Open(0);
             Application.Idle += OnCameraFrame;
         }
 
         private void OnCameraFrame (object sender, EventArgs e)
         {
-            img = capture.QueryFrame();
-            CvInvoke.Flip(img, img, Emgu.CV.CvEnum.FlipType.Horizontal);
+            capture.Read(img);
+            Cv2.Flip(img, img, FlipMode.Y);
 
-            //Mat hsv = new Mat();
-            //CvInvoke.CvtColor(img, hsv, Emgu.CV.CvEnum.ColorConversion.Bgr2Hsv);
-            //Mat[] channels = hsv.Split();
-            //channels[2] += 10;
-            //channels[1] += 50;
-            //CvInvoke.Merge(new VectorOfMat(channels[0], channels[1], channels[2]), hsv);
-            //CvInvoke.CvtColor(hsv, img, Emgu.CV.CvEnum.ColorConversion.Hsv2Bgr);
-
-            byte[] imgArray = new byte[img.Rows * img.Cols * img.ElementSize];
-
-            img.CopyTo(imgArray);
-            image = Dlib.LoadImageData<BgrPixel>(imgArray, (uint)img.Rows, (uint)img.Cols, (uint)(img.Width * img.ElementSize));
-
+            var array = new byte[img.Width * img.Height * img.ElemSize()];
+            Marshal.Copy(img.Data, array, 0, array.Length);
+            var i = img.ElemSize();
+            var image = Dlib.LoadImageData<BgrPixel>(array, (uint)img.Height, (uint)img.Width, (uint)(img.Width * img.ElemSize()));
             faces = detector.Operator(image);
 
             shapes.Clear();
@@ -78,7 +67,6 @@ namespace OpenCVTest
             }
 
 
-
             Invalidate();
         }
 
@@ -86,7 +74,10 @@ namespace OpenCVTest
         {
             base.OnPaint(e);
 
-            Bitmap screen = new Bitmap(img.ToBitmap());
+            if (img.Width == 0)
+                return;
+
+            Bitmap screen = img.ToBitmap();
             Graphics g = Graphics.FromImage(screen);
             Pen p = new Pen(Color.Black, 5);
 
@@ -118,23 +109,23 @@ namespace OpenCVTest
                 //ImageBetweenPoints(g, eyeImage, landmarks[2], landmarks[3]);
                 //ImageBetweenPoints(g, eyeImage, landmarks[4], landmarks[5]);
                 int d = (int)Dist(landmarks[7], landmarks[6]) * 4;
-                Bitmap bmp = RotateImage(new Bitmap(mustacheImage, new Size(d * 2, d)), (float)Angle(landmarks[6], landmarks[7]));
+                Bitmap bmp = RotateImage(new Bitmap(mustacheImage, new Drawing.Size(d * 2, d)), (float)Angle(landmarks[6], landmarks[7]));
                 g.DrawImage(bmp, new Drawing.Point((landmarks[0].X + landmarks[1].X) / 2 - bmp.Width / 2, (landmarks[6].Y + landmarks[7].Y) / 2 - bmp.Height / 2));
                 //ImageBetweenPoints(g, , (float)Angle(landmarks[6], landmarks[7])), landmarks[0], landmarks[1], 0, (landmarks[7].Y - landmarks[6].Y) / 2);
             }
 
 
-            Size winSize = e.Graphics.VisibleClipBounds.Size.ToSize();
-            Size s = screen.Size;
-            Size imgSize;
+            Drawing.Size winSize = e.Graphics.VisibleClipBounds.Size.ToSize();
+            Drawing.Size s = screen.Size;
+            Drawing.Size imgSize;
             double ratio = (double)s.Width / s.Height;
             if ((double)winSize.Width / s.Width < (double)winSize.Height / s.Height)
             {
-                imgSize = new Size(winSize.Width, (int)(winSize.Width / ratio));
+                imgSize = new Drawing.Size(winSize.Width, (int)(winSize.Width / ratio));
             }
             else
             {
-                imgSize = new Size((int)(winSize.Height * ratio), winSize.Height);
+                imgSize = new Drawing.Size((int)(winSize.Height * ratio), winSize.Height);
             }
 
             e.Graphics.DrawImage(screen, new Drawing.Rectangle(new Drawing.Point(0, 0), imgSize));
