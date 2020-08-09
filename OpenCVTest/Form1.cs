@@ -13,7 +13,6 @@ using System.Windows.Forms;
 using System.Drawing;
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
-using OpenCvSharp.XImgProc;
 using DlibDotNet.ImageDatasetMetadata;
 
 namespace OpenCVTest
@@ -50,13 +49,12 @@ namespace OpenCVTest
 
         private void OnCameraFrame (object sender, EventArgs e)
         {
-            capture.Read(img);
+            img = capture.RetrieveMat();
             Cv2.Flip(img, img, FlipMode.Y);
 
-            var array = new byte[img.Width * img.Height * img.ElemSize()];
+            var array = new byte[img.Cols * img.Rows * img.ElemSize()];
             Marshal.Copy(img.Data, array, 0, array.Length);
-            var i = img.ElemSize();
-            var image = Dlib.LoadImageData<BgrPixel>(array, (uint)img.Height, (uint)img.Width, (uint)(img.Width * img.ElemSize()));
+            var image = Dlib.LoadImageData<RgbPixel>(array, (uint)img.Rows, (uint)img.Cols, (uint)(img.Cols * img.ElemSize()));
             faces = detector.Operator(image);
 
             shapes.Clear();
@@ -74,7 +72,7 @@ namespace OpenCVTest
         {
             base.OnPaint(e);
 
-            if (img.Width == 0)
+            if (img.Cols == 0)
                 return;
 
             Bitmap screen = img.ToBitmap();
@@ -85,14 +83,8 @@ namespace OpenCVTest
             {
                 p = new Pen(Brushes.White, 1);
                 var shape = shapes[i];
-                //for (var j = 0; j < shape.Parts; j++)
-                //{
-                //    DlibDotNet.Point point = shape.GetPart((uint)j);
 
-                //    g.DrawEllipse(p, point.X, point.Y, 7, 7);
-                //}
-
-                Drawing.Point[] faceRotationLandmarks = (from index in new int[] { 30, 8, 36, 45, 48, 54 }
+                Drawing.Point[] facePosLandmarks = (from index in new int[] { 30, 8, 36, 45, 48, 54 }
                                           let pt = shape.GetPart((uint)index)
                                           select new Drawing.Point(pt.X, pt.Y)).ToArray();
 
@@ -106,12 +98,9 @@ namespace OpenCVTest
                     //g.DrawEllipse(p, point.X, point.Y, 10, 10);
                 }
 
-                //ImageBetweenPoints(g, eyeImage, landmarks[2], landmarks[3]);
-                //ImageBetweenPoints(g, eyeImage, landmarks[4], landmarks[5]);
                 int d = (int)Dist(landmarks[7], landmarks[6]) * 4;
                 Bitmap bmp = RotateImage(new Bitmap(mustacheImage, new Drawing.Size(d * 2, d)), (float)Angle(landmarks[6], landmarks[7]));
                 g.DrawImage(bmp, new Drawing.Point((landmarks[0].X + landmarks[1].X) / 2 - bmp.Width / 2, (landmarks[6].Y + landmarks[7].Y) / 2 - bmp.Height / 2));
-                //ImageBetweenPoints(g, , (float)Angle(landmarks[6], landmarks[7])), landmarks[0], landmarks[1], 0, (landmarks[7].Y - landmarks[6].Y) / 2);
             }
 
 
@@ -138,28 +127,16 @@ namespace OpenCVTest
 
         private Bitmap RotateImage(Bitmap b, float angle)
         {
-            //create a new empty bitmap to hold rotated image
             double scale = Dist(new Drawing.Point(0, 0), new Drawing.Point(b.Width, b.Height));
             Bitmap returnBitmap = new Bitmap((int)(scale), (int)(scale));
-            //make a graphics object from the empty bitmap
             using (Graphics g = Graphics.FromImage(returnBitmap))
             {
-                //move rotation point to center of image
                 g.TranslateTransform((float)returnBitmap.Width / 2, (float)returnBitmap.Height / 2);
-                //rotate
                 g.RotateTransform(angle);
-                //move image back
                 g.TranslateTransform(-(float)returnBitmap.Width / 2, -(float)returnBitmap.Height / 2);
-                //draw passed in image onto graphics object
                 g.DrawImage(b, new Drawing.Point((returnBitmap.Width - b.Width) / 2, (returnBitmap.Height - b.Height) / 2));
             }
             return returnBitmap;
-        }
-
-        private void ImageBetweenPoints(Graphics g, Bitmap bmp, Drawing.Point left, Drawing.Point right, int xOff = 0, int yOff = 0)
-        {
-            //int d = (int)Dist(left, right);
-            g.DrawImage(bmp, new Drawing.Point((left.X + right.X) / 2 - bmp.Width / 2 + xOff, (left.Y + right.Y) / 2 - bmp.Height / 2 + yOff));
         }
 
         private double Dist (Drawing.Point a, Drawing.Point b)

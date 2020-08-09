@@ -12,7 +12,6 @@
     <PackageReference Include="DlibDotNet.Extensions" Version="19.18.0.20200428" />
     <PackageReference Include="OpenCvSharp4" Version="4.4.0.20200725" />
     <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.4.0.20200725" />
-    <PackageReference Include="OpenCvSharp4.Windows" Version="4.4.0.20200725" />
   </ItemGroup>
 
   <ItemGroup>
